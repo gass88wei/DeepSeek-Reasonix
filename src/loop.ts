@@ -9,6 +9,7 @@ import {
   truncateForModel,
   truncateForModelByTokens,
 } from "./mcp/registry.js";
+import type { PluginManager } from "./plugins/index.js";
 
 import { ContextManager, TURN_START_FOLD_THRESHOLD } from "./context-manager.js";
 import { InflightSet } from "./core/inflight.js";
@@ -94,6 +95,8 @@ export interface CacheFirstLoopOptions {
   hooks?: ResolvedHook[];
   /** `cwd` reported to hooks; `reasonix code` sets this to the sandbox root, not shell home. */
   hookCwd?: string;
+  /** Plugin manager for llm.params / llm.output hooks. */
+  pluginManager?: PluginManager;
   /** PauseGate bridge — defaults to singleton, injectable for tests. */
   confirmationGate?: PauseGate;
   /** Re-runs the prompt builder (applyMemoryStack / codeSystemPrompt) on /new so REASONIX.md edits take effect without a restart. Accepting a cache miss is the price. */
@@ -135,6 +138,8 @@ export class CacheFirstLoop {
 
   hooks: ResolvedHook[];
   hookCwd: string;
+  /** Plugin manager for llm.params / llm.output hooks. */
+  pluginManager: PluginManager | undefined;
 
   /** PauseGate bridge — defaults to singleton, injectable for tests. */
   readonly confirmationGate: PauseGate;
@@ -198,6 +203,7 @@ export class CacheFirstLoop {
 
     this.hooks = opts.hooks ?? [];
     this.hookCwd = opts.hookCwd ?? process.cwd();
+    this.pluginManager = opts.pluginManager;
     this.confirmationGate = opts.confirmationGate ?? defaultPauseGate;
     this._rebuildSystem = opts.rebuildSystem ?? null;
 
@@ -765,13 +771,23 @@ export class CacheFirstLoop {
       let assistantContent = "";
       let reasoningContent = "";
       let toolCalls: ToolCall[] = [];
+      let activeModel = this.model;
+
+      // Plugin hook: llm.params — allows modifying model/params before the call.
+      if (this.pluginManager) {
+        const paramsOutput = { model: undefined as string | undefined, temperature: undefined as number | undefined, maxTokens: undefined as number | undefined, system: undefined as string | undefined };
+        try {
+          await this.pluginManager.trigger("llm.params", { model: activeModel, messages }, paramsOutput);
+          if (paramsOutput.model) activeModel = paramsOutput.model;
+        } catch { /* hook failure must not break llm */ }
+      }
       let usage: TurnStats["usage"] | null = null;
 
       try {
         if (this.stream) {
           const result = yield* streamModelResponse({
             client: this.client,
-            model: this.model,
+            model: activeModel,
             messages,
             toolSpecs,
             signal,
@@ -783,7 +799,7 @@ export class CacheFirstLoop {
           toolCalls = result.toolCalls;
           usage = result.usage;
         } else {
-          const callModel = this.model;
+          const callModel = activeModel;
           const resp = await this.client.chat({
             model: callModel,
             messages,
@@ -796,6 +812,15 @@ export class CacheFirstLoop {
           reasoningContent = resp.reasoningContent ?? "";
           toolCalls = resp.toolCalls;
           usage = resp.usage;
+        }
+
+        // Plugin hook: llm.output — allows modifying the assistant content.
+        if (this.pluginManager && assistantContent) {
+          const output = { text: assistantContent };
+          try {
+            await this.pluginManager.trigger("llm.output", { text: assistantContent }, output);
+            assistantContent = output.text;
+          } catch { /* hook failure must not break llm output */ }
         }
       } catch (err) {
         // An aborted signal here is almost always our own doing —
