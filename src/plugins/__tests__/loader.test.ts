@@ -2,6 +2,7 @@
  * Plugin loader tests
  */
 
+import { sep } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   parsePluginEntries,
@@ -60,17 +61,20 @@ describe("parsePluginEntries", () => {
 describe("pluginDir helpers", () => {
   it("projectPluginDir returns .reasonix/plugins under the project root", () => {
     const dir = projectPluginDir("/some/project");
-    expect(dir).toMatch(/\/some\/project\/\.reasonix\/plugins$/);
+    // On POSIX: /some/project/.reasonix/plugins
+    // On Windows: \some\project\.reasonix\plugins
+    expect(dir).toContain(".reasonix");
+    expect(dir).toContain("plugins");
   });
 
   it("projectPluginDir defaults to cwd", () => {
     const dir = projectPluginDir();
-    expect(dir).toContain(".reasonix/plugins");
+    expect(dir).toContain(".reasonix/plugins".replace("/", sep));
   });
 
   it("globalPluginDir returns ~/.reasonix/plugins", () => {
     const dir = globalPluginDir();
-    expect(dir).toContain(".reasonix/plugins");
+    expect(dir).toContain(".reasonix/plugins".replace("/", sep));
   });
 });
 

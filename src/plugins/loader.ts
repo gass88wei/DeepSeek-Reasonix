@@ -10,10 +10,11 @@
  * The loader is a directory scan + dynamic import — no npm resolution in v1.
  */
 
-import { existsSync, readFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { homedir } from "node:os";
-import type { Plugin, PluginEntry } from "./types.js";
+import { pathToFileURL } from "node:url";
+import type { Plugin } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Plugin directories
@@ -31,17 +32,15 @@ export function globalPluginDir(): string {
 
 /** Built-in plugin directory (resolved relative to the Reasonix dist). */
 function builtinPluginDir(): string | null {
-  // In dev: src/plugins/builtin/
-  // In prod: dist/plugins/builtin/
+  // In the bundled dist, built-in plugins ship alongside the CLI.
+  // Check relative to the current module location.
   try {
-    // Try to find the package root by walking up from __dirname
-    const { fileURLToPath } = require("url") as typeof import("url");
-    const { dirname, resolve } = require("path") as typeof import("path");
-    const currentFile = __dirname ?? dirname(fileURLToPath(import.meta.url));
-    const candidate = resolve(currentFile, "..", "plugins", "builtin");
+    // __dirname equivalent in ESM
+    const currentDir = new URL(".", import.meta.url).pathname;
+    const candidate = resolve(currentDir, "..", "plugins", "builtin");
     if (existsSync(candidate)) return candidate;
   } catch {
-    // Silently fall back — no built-in plugins is fine.
+    // Silently fall back.
   }
   return null;
 }
@@ -70,10 +69,17 @@ export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
   for (const item of raw) {
     if (typeof item === "string") {
       entries.push({ spec: item.trim() });
-    } else if (Array.isArray(item) && item.length >= 1 && typeof item[0] === "string") {
+    } else if (
+      Array.isArray(item) &&
+      item.length >= 1 &&
+      typeof item[0] === "string"
+    ) {
       entries.push({
         spec: item[0].trim(),
-        options: typeof item[1] === "object" && item[1] !== null ? (item[1] as Record<string, unknown>) : undefined,
+        options:
+          typeof item[1] === "object" && item[1] !== null
+            ? (item[1] as Record<string, unknown>)
+            : undefined,
       });
     }
   }
@@ -90,10 +96,17 @@ export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
  *   - Bare names → scanned from .reasonix/plugins/<name>/
  *   - Scoped names (@scope/pkg) → npm resolution (v1: not implemented)
  */
-export function resolvePluginPath(spec: string, projectRoot?: string): string | null {
+export function resolvePluginPath(
+  spec: string,
+  projectRoot?: string,
+): string | null {
   // Already a path-like spec
-  if (spec.startsWith("/") || spec.startsWith("./") || spec.startsWith("../") || spec.includes("\\")) {
-    const candidate = join(process.cwd(), spec);
+  if (
+    spec.startsWith("/") ||
+    spec.startsWith("./") ||
+    spec.startsWith("../")
+  ) {
+    const candidate = resolve(process.cwd(), spec);
     return existsSync(candidate) ? candidate : null;
   }
 
@@ -103,10 +116,7 @@ export function resolvePluginPath(spec: string, projectRoot?: string): string | 
   }
 
   // Bare name — scan directories
-  const dirs = [
-    projectPluginDir(projectRoot),
-    globalPluginDir(),
-  ];
+  const dirs = [projectPluginDir(projectRoot), globalPluginDir()];
 
   for (const dir of dirs) {
     const candidate = join(dir, spec, "index.js");
@@ -130,11 +140,10 @@ export function scanPluginDir(dir: string): string[] {
 
   const results: string[] = [];
   try {
-    const { readdirSync, statSync } = require("fs") as typeof import("fs");
     const entries = readdirSync(dir);
     for (const entry of entries) {
-      const full = join(dir, entry);
       if (entry.startsWith(".")) continue;
+      const full = join(dir, entry);
       try {
         const stat = statSync(full);
         if (stat.isDirectory()) {
@@ -143,7 +152,10 @@ export function scanPluginDir(dir: string): string[] {
           if (existsSync(indexFile)) results.push(indexFile);
           const indexMjs = join(full, "index.mjs");
           if (existsSync(indexMjs)) results.push(indexMjs);
-        } else if (stat.isFile() && (entry.endsWith(".js") || entry.endsWith(".mjs"))) {
+        } else if (
+          stat.isFile() &&
+          (entry.endsWith(".js") || entry.endsWith(".mjs"))
+        ) {
           results.push(full);
         }
       } catch {
@@ -166,22 +178,23 @@ export function scanPluginDir(dir: string): string[] {
  */
 export async function loadPluginFromFile(
   filePath: string,
-  options?: Record<string, unknown>,
+  _options?: Record<string, unknown>,
 ): Promise<Plugin> {
   // Convert to file:// URL for cross-platform compatibility
-  const url = `file://${filePath.replace(/\\/g, "/")}`;
-  const mod = await import(url);
-  const plugin: Plugin = mod.default ?? mod.plugin ?? mod;
-  if (!plugin || typeof plugin.register !== "function") {
+  const url = pathToFileURL(filePath).href;
+  const mod: Record<string, unknown> = await import(url);
+  const plugin = (mod.default ?? mod.plugin ?? mod) as Partial<Plugin>;
+  if (typeof plugin.register !== "function") {
     throw new Error(
       `Plugin at ${filePath} must export a default Plugin object with a register(ctx) function`,
     );
   }
   if (!plugin.id) {
     // Derive id from filename
-    plugin.id = filePath.split(/[/\\]/).pop()?.replace(/\.(js|mjs)$/, "") ?? "unknown";
+    plugin.id =
+      filePath.split(/[/\\]/).pop()?.replace(/\.(js|mjs)$/, "") ?? "unknown";
   }
-  return plugin;
+  return plugin as Plugin;
 }
 
 /**
@@ -191,7 +204,10 @@ export async function loadPluginFromFile(
 export async function loadPluginsFromConfig(
   entries: PluginConfigEntry[],
   projectRoot?: string,
-): Promise<{ loaded: Plugin[]; failed: Array<{ spec: string; error: string }> }> {
+): Promise<{
+  loaded: Plugin[];
+  failed: Array<{ spec: string; error: string }>;
+}> {
   const loaded: Plugin[] = [];
   const failed: Array<{ spec: string; error: string }> = [];
 
@@ -231,7 +247,9 @@ export interface ScanAndLoadResult {
  * Scan all plugin directories and load every plugin found.
  * Useful for "just pick up everything in .reasonix/plugins/".
  */
-export async function scanAndLoadPlugins(projectRoot?: string): Promise<ScanAndLoadResult> {
+export async function scanAndLoadPlugins(
+  projectRoot?: string,
+): Promise<ScanAndLoadResult> {
   const dirs = [
     ...(builtinPluginDir() ? [builtinPluginDir()!] : []),
     projectPluginDir(projectRoot),

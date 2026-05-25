@@ -14,10 +14,8 @@
 
 import type {
   Plugin,
-  PluginContext,
-  PluginEntry,
   PluginHooks,
-  PluginToolDefinition,
+  PluginEntry,
   ToolBeforeInput,
   ToolBeforeOutput,
   ToolAfterInput,
@@ -38,6 +36,12 @@ export class PluginManager {
   #entries = new Map<string, PluginEntry>();
   /** Plugin id → disposers. */
   #disposers = new Map<string, Array<() => void>>();
+  /** Optional config reader injected from host. */
+  #configReader?: <T>(keyPath: string, fallback?: T) => T;
+
+  constructor(configReader?: <T>(keyPath: string, fallback?: T) => T) {
+    this.#configReader = configReader;
+  }
 
   // -----------------------------------------------------------------------
   // Load / Unload
@@ -49,14 +53,14 @@ export class PluginManager {
    */
   async load(plugin: Plugin): Promise<boolean> {
     const id = plugin.id;
-    if ((plugin as any)[SYMBOL_LOADED]) return false;
+    if ((plugin as Record<symbol, unknown>)[SYMBOL_LOADED]) return false;
     if (this.#hooks.has(id)) {
       // Unload existing first so hot-reload works.
       this.unload(id);
     }
 
     const disposers: Array<() => void> = [];
-    const ctx: PluginContext = createPluginContext(id, disposers);
+    const ctx = createPluginContext(id, disposers, this.#configReader);
 
     try {
       const hooks = (await plugin.register(ctx)) ?? {};
@@ -71,7 +75,7 @@ export class PluginManager {
         source: "file",
         sourceSpec: id,
       });
-      (plugin as any)[SYMBOL_LOADED] = true;
+      (plugin as Record<symbol, unknown>)[SYMBOL_LOADED] = true;
       return true;
     } catch (err) {
       this.#entries.set(id, {
@@ -124,11 +128,13 @@ export class PluginManager {
    */
   async trigger<E extends keyof PluginHooks>(
     event: E,
-    input: any,
-    output: any,
+    input: unknown,
+    output: unknown,
   ): Promise<void> {
     for (const hooks of this.#hooks.values()) {
-      const handler = hooks[event] as ((input: any, output: any) => Promise<void>) | undefined;
+      const handler = hooks[event] as
+        | ((input: unknown, output: unknown) => Promise<void>)
+        | undefined;
       if (typeof handler === "function") {
         try {
           await handler(input, output);
@@ -175,17 +181,17 @@ export class PluginManager {
    * Collect every tool registered by plugins, keyed by tool name.
    * Call this during startup and merge into the ToolRegistry.
    */
-  collectTools(): Record<string, PluginToolDefinition> {
-    const all: Record<string, PluginToolDefinition> = {};
+  collectTools(): Record<string, import("./types.js").PluginToolDefinition> {
+    const all: Record<string, import("./types.js").PluginToolDefinition> = {};
     for (const hooks of this.#hooks.values()) {
       if (hooks.tools) {
         for (const [name, def] of Object.entries(hooks.tools)) {
-          if (name in all) {
+          if ((name as string) in all) {
             process.stderr.write(
-              `[plugins] tool "${name}" registered by multiple plugins; last wins\n`,
+              `[plugins] tool "${name as string}" registered by multiple plugins; last wins\n`,
             );
           }
-          all[name] = def;
+          all[name as string] = def;
         }
       }
     }
