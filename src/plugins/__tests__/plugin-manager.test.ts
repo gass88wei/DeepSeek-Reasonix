@@ -30,9 +30,7 @@ describe("PluginManager", () => {
     manager = new PluginManager();
   });
 
-  // -----------------------------------------------------------------------
   // Load / Unload
-  // -----------------------------------------------------------------------
 
   it("loads a plugin and tracks it", async () => {
     const plugin = makePlugin("test-1", {});
