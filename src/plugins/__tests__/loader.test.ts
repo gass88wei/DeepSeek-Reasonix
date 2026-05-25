@@ -4,7 +4,12 @@
 
 import { sep } from "node:path";
 import { describe, expect, it } from "vitest";
-import { globalPluginDir, parsePluginEntries, projectPluginDir, resolvePluginPath } from "../loader.js";
+import {
+  globalPluginDir,
+  parsePluginEntries,
+  projectPluginDir,
+  resolvePluginPath,
+} from "../loader.js";
 
 describe("parsePluginEntries", () => {
   it("parses string[] entries", () => {

@@ -132,7 +132,9 @@ export class PluginManager {
     output: unknown,
   ): Promise<void> {
     for (const hooks of this.#hooks.values()) {
-      const handler = hooks[event] as ((input: unknown, output: unknown) => Promise<void>) | undefined;
+      const handler = hooks[event] as
+        | ((input: unknown, output: unknown) => Promise<void>)
+        | undefined;
       if (typeof handler === "function") {
         try {
           await handler(input, output);
@@ -176,7 +178,9 @@ export class PluginManager {
       if (hooks.tools) {
         for (const [name, def] of Object.entries(hooks.tools)) {
           if (name in all) {
-            process.stderr.write(`[plugins] tool "${name}" registered by multiple plugins; last wins\n`);
+            process.stderr.write(
+              `[plugins] tool "${name}" registered by multiple plugins; last wins\n`,
+            );
           }
           all[name] = def;
         }
