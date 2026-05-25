@@ -8,7 +8,7 @@ import type { Plugin, PluginContext, PluginHooks } from "../types.js";
 
 function makePlugin(
   id: string,
-  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | undefined | void),
+  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | undefined),
 ): Plugin {
   return {
     id,
@@ -17,10 +17,9 @@ function makePlugin(
     description: "A test plugin",
     async register(ctx) {
       if (typeof hooks === "function") {
-        const result = hooks(ctx);
-        return result ?? {};
+        return (hooks(ctx) ?? {}) as PluginHooks;
       }
-      return hooks ?? {};
+      return (hooks ?? {}) as PluginHooks;
     },
   };
 }
