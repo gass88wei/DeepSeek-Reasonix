@@ -8,7 +8,8 @@ import type { Plugin, PluginContext, PluginHooks } from "../types.js";
 
 function makePlugin(
   id: string,
-  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | undefined),
+  // biome-ignore lint/suspicious/noConfusingVoidType: needed for callback void return compatibility
+  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | undefined | void),
 ): Plugin {
   return {
     id,
