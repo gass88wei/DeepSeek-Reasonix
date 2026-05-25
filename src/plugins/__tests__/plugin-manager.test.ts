@@ -94,9 +94,7 @@ describe("PluginManager", () => {
     expect(entries[0]?.error).toContain("kaboom");
   });
 
-  // -----------------------------------------------------------------------
   // entries()
-  // -----------------------------------------------------------------------
 
   it("entries() returns metadata for loaded plugins", async () => {
     await manager.load(makePlugin("meta-test", {}));
@@ -108,9 +106,7 @@ describe("PluginManager", () => {
     expect(entries[0]?.enabled).toBe(true);
   });
 
-  // -----------------------------------------------------------------------
   // collectTools()
-  // -----------------------------------------------------------------------
 
   it("collectTools aggregates tools from all plugins", async () => {
     await manager.load(
@@ -147,9 +143,7 @@ describe("PluginManager", () => {
     expect(manager.collectTools()).toEqual({});
   });
 
-  // -----------------------------------------------------------------------
   // trigger()
-  // -----------------------------------------------------------------------
 
   it("trigger fires the correct hook", async () => {
     const calls: string[] = [];
@@ -250,9 +244,7 @@ describe("PluginManager", () => {
     expect(output.result).toBe("modified: original");
   });
 
-  // -----------------------------------------------------------------------
   // triggerLlmParams
-  // -----------------------------------------------------------------------
 
   it("triggerLlmParams can override model", async () => {
     await manager.load(

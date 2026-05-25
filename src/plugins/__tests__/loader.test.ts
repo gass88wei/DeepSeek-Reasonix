@@ -1,6 +1,4 @@
-/**
- * Plugin loader tests
- */
+/** Plugin loader tests */
 
 import { sep } from "node:path";
 import { describe, expect, it } from "vitest";
