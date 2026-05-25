@@ -9,9 +9,9 @@ import {
   truncateForModel,
   truncateForModelByTokens,
 } from "./mcp/registry.js";
-import type { PluginManager } from "./plugins/index.js";
 
 import { ContextManager, TURN_START_FOLD_THRESHOLD } from "./context-manager.js";
+import type { PluginManager } from "./plugins/index.js";
 import { InflightSet } from "./core/inflight.js";
 import { t } from "./i18n/index.js";
 import { dispatchToolCallsChunked } from "./loop/dispatch.js";

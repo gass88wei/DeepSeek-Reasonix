@@ -9,10 +9,8 @@ import {
 import type { ReadTracker } from "./tools/read-tracker.js";
 import { saveTruncatedResult, shouldSkipSave } from "./tools/truncated-result-saver.js";
 import type { JSONSchema, ToolSpec } from "./types.js";
-
-// Import types for plugin hooks — lazy at runtime to avoid circular deps.
 import type { PluginManager } from "./plugins/index.js";
-import type { ToolBeforeInput, ToolBeforeOutput, ToolAfterInput, ToolAfterOutput } from "./plugins/types.js";
+import type { ToolAfterInput, ToolAfterOutput, ToolBeforeInput, ToolBeforeOutput } from "./plugins/types.js";
 
 export interface ToolCallContext {
   signal?: AbortSignal;
