@@ -309,7 +309,10 @@ export class ToolRegistry {
         /* hook failure must not break tool execution */
       }
       if (beforeOutput.block) {
-        return JSON.stringify({ error: beforeOutput.message || `blocked by plugin: ${name}`, rejectedReason: "plugin-block" });
+        return JSON.stringify({
+          error: beforeOutput.message || `blocked by plugin: ${name}`,
+          rejectedReason: "plugin-block",
+        });
       }
       if (beforeOutput.args) {
         args = beforeOutput.args;

@@ -775,7 +775,12 @@ export class CacheFirstLoop {
 
       // Plugin hook: llm.params — allows modifying model/params before the call.
       if (this.pluginManager) {
-        const paramsOutput = { model: undefined as string | undefined, temperature: undefined as number | undefined, maxTokens: undefined as number | undefined, system: undefined as string | undefined };
+        const paramsOutput = {
+          model: undefined as string | undefined,
+          temperature: undefined as number | undefined,
+          maxTokens: undefined as number | undefined,
+          system: undefined as string | undefined,
+        };
         try {
           await this.pluginManager.trigger("llm.params", { model: activeModel, messages }, paramsOutput);
           if (paramsOutput.model) activeModel = paramsOutput.model;
