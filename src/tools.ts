@@ -10,6 +10,10 @@ import type { ReadTracker } from "./tools/read-tracker.js";
 import { saveTruncatedResult, shouldSkipSave } from "./tools/truncated-result-saver.js";
 import type { JSONSchema, ToolSpec } from "./types.js";
 
+// Import types for plugin hooks — lazy at runtime to avoid circular deps.
+import type { PluginManager } from "./plugins/index.js";
+import type { ToolBeforeInput, ToolBeforeOutput, ToolAfterInput, ToolAfterOutput } from "./plugins/types.js";
+
 export interface ToolCallContext {
   signal?: AbortSignal;
   /** Inject a mock PauseGate for tests. When absent, tools use the singleton. */
@@ -79,10 +83,17 @@ export class ToolRegistry {
   private readonly _lastMalformed = new Map<string, string>();
   /** Per-tool fingerprint of the last host-side gate rejection. */
   private readonly _lastGateRejection = new Map<string, string>();
+  /** Optional plugin manager — fires tool.execute.before/after hooks. */
+  #pluginManager: PluginManager | null = null;
 
   constructor(opts: ToolRegistryOptions = {}) {
     this._autoFlatten = opts.autoFlatten !== false;
     this._rateLimiter = new ToolRateLimiter(opts.rateLimit);
+  }
+
+  /** Wire a PluginManager to fire tool.execute.before/after hooks on every dispatch. */
+  setPluginManager(pm: PluginManager | null): void {
+    this.#pluginManager = pm;
   }
 
   /** Enable / disable plan-mode enforcement at dispatch. */
@@ -288,7 +299,25 @@ export class ToolRegistry {
       return JSON.stringify(rateLimit.result);
     }
 
+    // Plugin hook: tool.execute.before — allows blocking or modifying args.
+    if (this.#pluginManager) {
+      const beforeInput: ToolBeforeInput = { tool: name, args, sessionId: "" };
+      const beforeOutput: ToolBeforeOutput = { block: false, message: "", args };
+      try {
+        await this.#pluginManager.trigger("tool.execute.before", beforeInput, beforeOutput);
+      } catch {
+        /* hook failure must not break tool execution */
+      }
+      if (beforeOutput.block) {
+        return JSON.stringify({ error: beforeOutput.message || `blocked by plugin: ${name}`, rejectedReason: "plugin-block" });
+      }
+      if (beforeOutput.args) {
+        args = beforeOutput.args;
+      }
+    }
+
     let finalResult: string;
+    const startMs = Date.now();
     try {
       try {
         this._auditListener?.({ name, args });
@@ -348,6 +377,24 @@ export class ToolRegistry {
         }
       } else {
         finalResult = JSON.stringify({ error: `${e.name}: ${e.message}` });
+      }
+    }
+
+    // Plugin hook: tool.execute.after — allows modifying the result.
+    if (this.#pluginManager) {
+      const afterInput: ToolAfterInput = {
+        tool: name,
+        args,
+        result: finalResult,
+        durationMs: Date.now() - startMs,
+        sessionId: "",
+      };
+      const afterOutput: ToolAfterOutput = { result: finalResult };
+      try {
+        await this.#pluginManager.trigger("tool.execute.after", afterInput, afterOutput);
+        finalResult = afterOutput.result;
+      } catch {
+        /* hook failure must not break tool execution */
       }
     }
 
