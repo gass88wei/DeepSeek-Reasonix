@@ -69,10 +69,7 @@ export interface LlmStructuredResult {
 // Plugin hooks — all optional, mutate output param to affect behavior
 
 export interface PluginHooks {
-  /**
-   * Register custom tools merged into the global ToolRegistry.
-   * The model sees them as first-class tools alongside built-in ones.
-   */
+  /** Register custom tools merged into the global ToolRegistry. */
   tools?: Record<string, PluginToolDefinition>;
 
   /** Called before a tool executes. Return `{ block: true, message }` to block. */

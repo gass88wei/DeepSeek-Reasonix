@@ -1,6 +1,4 @@
-/**
- * PluginManager tests
- */
+/** PluginManager tests */
 
 import { beforeEach, describe, expect, it } from "vitest";
 import { PluginManager } from "../index.js";

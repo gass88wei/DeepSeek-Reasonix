@@ -183,9 +183,7 @@ export async function loadPluginsFromConfig(
   return { loaded, failed };
 }
 
-// ---------------------------------------------------------------------------
 // Scan + load everything (discovery-based, no config needed)
-// ---------------------------------------------------------------------------
 
 export interface ScanAndLoadResult {
   loaded: Plugin[];
