@@ -1,16 +1,4 @@
-/**
- * PluginManager — central registry for all loaded plugins.
- *
- * Lifecycle:
- *   1. PluginManager.load(plugin) → register() → stores returned hooks
- *   2. PluginManager.trigger(event, input, output) → dispatches to all plugins
- *   3. PluginManager.unload(id) → calls onDispose callbacks, removes hooks
- *
- * Integration with existing systems:
- *   - ToolRegistry: call pluginManager.collectTools() to get all plugin-defined tools
- *   - Loop: call pluginManager.trigger("llm.params", ...) before each LLM call
- *   - Hooks: Plugin hooks run BEFORE shell hooks in the same event
- */
+/** PluginManager — central registry for loaded plugins. Manages load/trigger/unload lifecycle. */
 
 import { createPluginContext } from "./context.js";
 import type {
@@ -44,14 +32,9 @@ export class PluginManager {
     this.#configReader = configReader;
   }
 
-  // -----------------------------------------------------------------------
   // Load / Unload
-  // -----------------------------------------------------------------------
 
-  /**
-   * Load one plugin. Calls `plugin.register(ctx)` and stores the result.
-   * Returns false if the plugin was already loaded (idempotent).
-   */
+  /** Load one plugin. Calls register(ctx). Idempotent. */
   async load(plugin: Plugin): Promise<boolean> {
     const id = plugin.id;
     if ((plugin as unknown as Record<symbol, unknown>)[SYMBOL_LOADED]) return false;
@@ -92,9 +75,7 @@ export class PluginManager {
     }
   }
 
-  /**
-   * Unload a plugin — calls all onDispose callbacks and removes hooks.
-   */
+  /** Unload a plugin — calls onDispose and removes hooks. */
   unload(id: string): void {
     const disposers = this.#disposers.get(id);
     if (disposers) {
@@ -118,14 +99,9 @@ export class PluginManager {
     }
   }
 
-  // -----------------------------------------------------------------------
   // Hook dispatch
-  // -----------------------------------------------------------------------
 
-  /**
-   * Trigger a hook event across all loaded plugins.
-   * Plugins fire in registration order — earlier plugins see events first.
-   */
+  /** Trigger a hook event across all loaded plugins in registration order. */
   async trigger<E extends keyof PluginHooks>(
     event: E,
     input: unknown,
@@ -164,14 +140,9 @@ export class PluginManager {
     await this.trigger("llm.params", { model, messages }, output);
   }
 
-  // -----------------------------------------------------------------------
   // Tool collection
-  // -----------------------------------------------------------------------
 
-  /**
-   * Collect every tool registered by plugins, keyed by tool name.
-   * Call this during startup and merge into the ToolRegistry.
-   */
+  /** Collect every tool registered by plugins, keyed by tool name. */
   collectTools(): Record<string, PluginToolDefinition> {
     const all: Record<string, PluginToolDefinition> = {};
     for (const hooks of this.#hooks.values()) {

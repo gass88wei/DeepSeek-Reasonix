@@ -1,22 +1,8 @@
-/**
- * PluginContext implementation — the object handed to plugin.register(ctx).
- * Provides config access, logging, LLM facade, and disposal registration.
- *
- * The configReader function is injected by PluginManager to avoid circular
- * imports between plugins/* and config.ts.
- */
+/** PluginContext — injected into plugin.register(ctx). Provides config, log, llm, onDispose. */
 
 import type { LlmCompleteResult, LlmOptions, LlmStructuredResult, PluginContext } from "./types.js";
 
-/**
- * Build a PluginContext for a plugin with the given id.
- *
- * @param pluginId  The plugin's stable identifier.
- * @param disposers  Array pushed into by ctx.onDispose — the owner (PluginManager)
- *                   calls these on unload.
- * @param configReader  Optional synchronous config reader injected by PluginManager.
- *                      If absent, config() always returns the fallback.
- */
+/** Build a PluginContext for a plugin. */
 export function createPluginContext(
   pluginId: string,
   disposers: Array<() => void>,

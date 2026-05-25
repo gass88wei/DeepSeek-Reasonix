@@ -1,6 +1,4 @@
-/**
- * Plugins barrel — public API for the Reasonix Plugin System.
- */
+/** Plugins barrel — public API for the Reasonix Plugin System. */
 
 export { PluginManager } from "./index.js";
 export type { Plugin, PluginHooks, PluginContext, PluginEntry } from "./types.js";

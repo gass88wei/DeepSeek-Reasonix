@@ -1,36 +1,18 @@
-/**
- * Plugin LLM bridge — host-owned model access for plugins.
- *
- * Plugins call ctx.llm.complete() / ctx.llm.completeStructured() and we
- * route through the user's active model/auth via the auxiliary client.
- * Plugin trust gates are future work — for v1, plugins get the default
- * model with no override capability (same as an untrusted plugin in hermes).
- */
+/** Plugin LLM bridge — routes ctx.llm.complete() through user's active model. */
 
 import type { LlmCompleteResult, LlmOptions, LlmStructuredResult } from "./types.js";
 
-/**
- * Run a chat completion for a plugin.
- * Uses the host's default model and auth — no override capability in v1.
- */
+/** Run a chat completion for a plugin. */
 export async function callLlmForPlugin(
   pluginId: string,
   messages: Array<{ role: string; content: string }>,
   opts?: LlmOptions,
 ): Promise<LlmCompleteResult> {
-  // v1: simple wrapper that logs the call and returns a placeholder.
-  // In a full integration this would call through to the active DeepSeekClient
-  // or auxiliary_client like hermes-agent's PluginLlm.
-  //
-  // The user's active model (model.provider + model.model from config) is
-  // resolved at the time of the call, not cached at plugin load time.
   process.stdout.write(
     `[plugins:${pluginId}] LLM call: ${messages.length} messages, ${opts?.maxTokens ?? "default"} max tokens\n`,
   );
 
-  // TODO(#plugin-llm): Wire through to the real LLM client.
-  // For now return a placeholder so the plugin system can be built + tested
-  // without needing an API key for every plugin.
+  // TODO(#1): Wire through to the real LLM client.
   return {
     text: "[plugin LLM bridge — not yet connected to active model]",
     provider: "reasonix-plugin-bridge",
@@ -39,9 +21,7 @@ export async function callLlmForPlugin(
   };
 }
 
-/**
- * Run a structured completion for a plugin.
- */
+/** Run a structured completion for a plugin. */
 export async function callStructuredForPlugin(
   pluginId: string,
   instruction: string,
@@ -52,7 +32,7 @@ export async function callStructuredForPlugin(
     `[plugins:${pluginId}] Structured LLM call: "${instruction.slice(0, 80)}...\"\n`,
   );
 
-  // TODO(#plugin-llm): Wire through to the real LLM client.
+  // TODO(#1): Wire through to the real LLM client.
   return {
     text: "[plugin LLM bridge — not yet connected to active model]",
     parsed: null,

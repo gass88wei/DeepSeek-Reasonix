@@ -1,15 +1,4 @@
-/**
- * Example Reasonix plugin — format-on-save.
- *
- * This demonstrates the Plugin API:
- *   - Register custom tools
- *   - Hook into tool lifecycle (before/after)
- *   - Use the plugin context
- *
- * To install: copy this file (or its compiled .js) to
- *   .reasonix/plugins/format-on-save/index.js
- * and add "format-on-save" to plugins.entries in settings.json.
- */
+/** Example Reasonix plugin — format-on-save. Demonstrates the Plugin API. */
 
 import type { Plugin } from "../types.js";
 

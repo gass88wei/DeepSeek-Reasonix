@@ -1,16 +1,4 @@
-/**
- * Reasonix Plugin System — type definitions.
- *
- * Inspired by @opencode-ai/plugin's `Plugin = (input) => Promise<Hooks>` pattern,
- * adapted to Reasonix Code's existing ToolRegistry + HookRunner + Loop architecture.
- *
- * A Plugin is an object with an `id` and a `register(ctx)` function that returns
- * the lifecycle hooks the plugin wants to attach to.
- */
-
-// ---------------------------------------------------------------------------
-// Plugin entry point
-// ---------------------------------------------------------------------------
+/** Reasonix plugin types — Plugin, PluginHooks, PluginContext. Inspired by @opencode-ai/plugin. */
 
 /** The canonical shape of a Reasonix plugin. */
 export interface Plugin {
@@ -26,9 +14,7 @@ export interface Plugin {
   register: (ctx: PluginContext) => Promise<PluginHooks | undefined>;
 }
 
-// ---------------------------------------------------------------------------
 // Plugin context — what we hand to plugins so they can act
-// ---------------------------------------------------------------------------
 
 export interface PluginContext {
   /** Plugin's own stable id. */
@@ -80,9 +66,7 @@ export interface LlmStructuredResult {
   model: string;
 }
 
-// ---------------------------------------------------------------------------
-// Plugin hooks — all optional, return void, mutate output param to affect behavior
-// ---------------------------------------------------------------------------
+// Plugin hooks — all optional, mutate output param to affect behavior
 
 export interface PluginHooks {
   /**
@@ -91,15 +75,11 @@ export interface PluginHooks {
    */
   tools?: Record<string, PluginToolDefinition>;
 
-  // -- Tool lifecycle (mirrors + extends the 4 existing HookEvents) ---------
-
   /** Called before a tool executes. Return `{ block: true, message }` to block. */
   "tool.execute.before"?: (input: ToolBeforeInput, output: ToolBeforeOutput) => Promise<void>;
 
   /** Called after a tool executes. Mutate `output.result` to modify the result. */
   "tool.execute.after"?: (input: ToolAfterInput, output: ToolAfterOutput) => Promise<void>;
-
-  // -- Chat / prompt hooks --------------------------------------------------
 
   /** Called when the user submits a prompt. Mutate to rewrite the message. */
   "user.prompt"?: (
@@ -116,30 +96,22 @@ export interface PluginHooks {
   /** Called with LLM response text before it reaches the user. Mutate to rewrite. */
   "llm.output"?: (input: { text: string }, output: { text: string }) => Promise<void>;
 
-  // -- Shell command hooks --------------------------------------------------
-
   /** Called before a shell command runs. Mutate to rewrite command or env. */
   "command.before"?: (
     input: { command: string; cwd: string },
     output: { command: string; env: Record<string, string> },
   ) => Promise<void>;
 
-  // -- Session lifecycle ----------------------------------------------------
-
   /** Fired once per new session. */
   "session.start"?: (sessionId: string) => Promise<void>;
   /** Fired when a session ends. */
   "session.end"?: (sessionId: string) => Promise<void>;
-
-  // -- Permission hook ------------------------------------------------------
 
   /** Intercept permission prompts. Return `{ status: "allow" | "deny" }` to short-circuit. */
   "permission.ask"?: (
     input: { permission: string; description: string },
     output: { status: "ask" | "allow" | "deny" },
   ) => Promise<void>;
-
-  // -- Tool definition hook -------------------------------------------------
 
   /** Modify a tool's description/params before sending to the LLM. */
   "tool.definition"?: (
@@ -148,9 +120,7 @@ export interface PluginHooks {
   ) => Promise<void>;
 }
 
-// ---------------------------------------------------------------------------
 // Sub-types for hook inputs/outputs
-// ---------------------------------------------------------------------------
 
 export interface ToolBeforeInput {
   tool: string;
@@ -187,9 +157,7 @@ export interface LlmParamsOutput {
   system?: string;
 }
 
-// ---------------------------------------------------------------------------
 // Tool definition — lighter version of ToolRegistry's ToolDefinition
-// ---------------------------------------------------------------------------
 
 export interface PluginToolDefinition {
   description: string;
@@ -202,9 +170,7 @@ export interface PluginToolDefinition {
   execute: (args: Record<string, unknown>, ctx: { signal?: AbortSignal }) => Promise<string>;
 }
 
-// ---------------------------------------------------------------------------
 // Plugin manager state types
-// ---------------------------------------------------------------------------
 
 export interface PluginEntry {
   id: string;

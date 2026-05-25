@@ -1,14 +1,4 @@
-/**
- * Plugin loader — finds and loads plugin modules from:
- *   1. Built-in plugins bundled with the release
- *   2. .reasonix/plugins/<name>/index.js  (project-scoped)
- *   3. ~/.reasonix/plugins/<name>/index.js (user-global)
- *
- * Each plugin module must export a default `Plugin` object (see types.ts)
- * with at minimum `id` and `register(ctx)`.
- *
- * The loader is a directory scan + dynamic import — no npm resolution in v1.
- */
+/** Plugin loader — scans .reasonix/plugins/ and loads Plugin modules via dynamic import. */
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -16,9 +6,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "./types.js";
 
-// ---------------------------------------------------------------------------
 // Plugin directories
-// ---------------------------------------------------------------------------
 
 /** Project-scoped plugin directory (<project>/.reasonix/plugins/). */
 export function projectPluginDir(projectRoot?: string): string {
@@ -45,9 +33,7 @@ function builtinPluginDir(): string | null {
   return null;
 }
 
-// ---------------------------------------------------------------------------
 // Config parsing
-// ---------------------------------------------------------------------------
 
 export interface PluginConfigEntry {
   /** Plugin identifier — either a name (file plugin) or npm package spec. */
@@ -56,12 +42,7 @@ export interface PluginConfigEntry {
   options?: Record<string, unknown>;
 }
 
-/**
- * Parse the `plugins.entries` section from the config.
- * Supports two shapes:
- *   string[]          → ["my-plugin", "@scope/pkg"]
- *   [string, object][] → [["my-plugin", { apiKey: "..." }], ["@scope/pkg", {}]]
- */
+/** Parse plugins.entries from config: string[] or [string, object][]. */
 export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
   if (!Array.isArray(raw)) return [];
 
@@ -82,16 +63,9 @@ export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
   return entries;
 }
 
-// ---------------------------------------------------------------------------
 // Scanning
-// ---------------------------------------------------------------------------
 
-/**
- * Resolve a plugin spec to a file path.
- *   - Relative/absolute paths → directly resolved
- *   - Bare names → scanned from .reasonix/plugins/<name>/
- *   - Scoped names (@scope/pkg) → npm resolution (v1: not implemented)
- */
+/** Resolve a plugin spec to a file path. */
 export function resolvePluginPath(spec: string, projectRoot?: string): string | null {
   // Already a path-like spec
   if (spec.startsWith("/") || spec.startsWith("./") || spec.startsWith("../")) {
@@ -121,9 +95,7 @@ export function resolvePluginPath(spec: string, projectRoot?: string): string | 
   return null;
 }
 
-/**
- * Scan a plugin directory and return every discoverable plugin path.
- */
+/** Scan a plugin directory for plugin files. */
 export function scanPluginDir(dir: string): string[] {
   if (!existsSync(dir)) return [];
 
@@ -154,14 +126,9 @@ export function scanPluginDir(dir: string): string[] {
   return results;
 }
 
-// ---------------------------------------------------------------------------
 // Loading
-// ---------------------------------------------------------------------------
 
-/**
- * Load a plugin from a file path via dynamic import.
- * Expects the module to export a default `Plugin` object.
- */
+/** Load a plugin from a file path via dynamic import. */
 export async function loadPluginFromFile(
   filePath: string,
   _options?: Record<string, unknown>,
@@ -183,10 +150,7 @@ export async function loadPluginFromFile(
   return plugin as Plugin;
 }
 
-/**
- * Load all plugins from the config's `plugins.entries` array.
- * Returns arrays of (successfully loaded plugins, failed entries with errors).
- */
+/** Load all plugins from config's plugins.entries array. */
 export async function loadPluginsFromConfig(
   entries: PluginConfigEntry[],
   projectRoot?: string,
@@ -229,10 +193,7 @@ export interface ScanAndLoadResult {
   scannedPaths: string[];
 }
 
-/**
- * Scan all plugin directories and load every plugin found.
- * Useful for "just pick up everything in .reasonix/plugins/".
- */
+/** Scan all plugin directories and load every plugin found. */
 export async function scanAndLoadPlugins(projectRoot?: string): Promise<ScanAndLoadResult> {
   const dirs = [
     ...(builtinPluginDir() ? [builtinPluginDir()!] : []),
