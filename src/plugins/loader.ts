@@ -191,8 +191,8 @@ export async function loadPluginFromFile(
   }
   if (!plugin.id) {
     // Derive id from filename
-    plugin.id =
-      filePath.split(/[/\\]/).pop()?.replace(/\.(js|mjs)$/, "") ?? "unknown";
+    const name = filePath.split(/[/\\]/).pop() ?? "";
+    plugin.id = name.replace(/\.(js|mjs)$/, "") || "unknown";
   }
   return plugin as Plugin;
 }
@@ -247,9 +247,7 @@ export interface ScanAndLoadResult {
  * Scan all plugin directories and load every plugin found.
  * Useful for "just pick up everything in .reasonix/plugins/".
  */
-export async function scanAndLoadPlugins(
-  projectRoot?: string,
-): Promise<ScanAndLoadResult> {
+export async function scanAndLoadPlugins(projectRoot?: string): Promise<ScanAndLoadResult> {
   const dirs = [
     ...(builtinPluginDir() ? [builtinPluginDir()!] : []),
     projectPluginDir(projectRoot),
