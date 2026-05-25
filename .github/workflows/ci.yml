@@ -2,11 +2,35 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/plugin-system]
   pull_request:
-    branches: [main]
+    branches: [main, feat/plugin-system]
 
 jobs:
+  # Fast feedback: plugin system tests run first, before the full build.
+  plugin-tests:
+    name: plugin-tests (${{ matrix.os }} · node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["22"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run plugin system tests
+        run: npx vitest run --reporter verbose src/plugins/__tests__/
+      - name: Notify on plugin-test failure
+        if: failure()
+        run: echo "❌ Plugin system tests failed on ${{ github.ref_name }} (${{ matrix.os }})"
+
   build:
     name: build (${{ matrix.os }} · node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
