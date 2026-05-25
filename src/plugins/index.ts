@@ -13,14 +13,15 @@
  */
 
 import type {
+  LlmParamsOutput,
   Plugin,
-  PluginHooks,
   PluginEntry,
-  ToolBeforeInput,
-  ToolBeforeOutput,
+  PluginHooks,
+  PluginToolDefinition,
   ToolAfterInput,
   ToolAfterOutput,
-  LlmParamsOutput,
+  ToolBeforeInput,
+  ToolBeforeOutput,
 } from "./types.js";
 import { createPluginContext } from "./context.js";
 
@@ -181,17 +182,17 @@ export class PluginManager {
    * Collect every tool registered by plugins, keyed by tool name.
    * Call this during startup and merge into the ToolRegistry.
    */
-  collectTools(): Record<string, import("./types.js").PluginToolDefinition> {
-    const all: Record<string, import("./types.js").PluginToolDefinition> = {};
+  collectTools(): Record<string, PluginToolDefinition> {
+    const all: Record<string, PluginToolDefinition> = {};
     for (const hooks of this.#hooks.values()) {
       if (hooks.tools) {
         for (const [name, def] of Object.entries(hooks.tools)) {
-          if ((name as string) in all) {
+          if (name in all) {
             process.stderr.write(
-              `[plugins] tool "${name as string}" registered by multiple plugins; last wins\n`,
+              `[plugins] tool "${name}" registered by multiple plugins; last wins\n`,
             );
           }
-          all[name as string] = def;
+          all[name] = def;
         }
       }
     }
