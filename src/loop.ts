@@ -12,7 +12,6 @@ import {
 
 import { ContextManager, TURN_START_FOLD_THRESHOLD } from "./context-manager.js";
 import { InflightSet } from "./core/inflight.js";
-import type { PluginManager } from "./plugins/index.js";
 import { t } from "./i18n/index.js";
 import { dispatchToolCallsChunked } from "./loop/dispatch.js";
 import {
@@ -782,9 +781,15 @@ export class CacheFirstLoop {
           system: undefined as string | undefined,
         };
         try {
-          await this.pluginManager.trigger("llm.params", { model: activeModel, messages }, paramsOutput);
+          await this.pluginManager.trigger(
+            "llm.params",
+            { model: activeModel, messages },
+            paramsOutput,
+          );
           if (paramsOutput.model) activeModel = paramsOutput.model;
-        } catch { /* hook failure must not break llm */ }
+        } catch {
+          /* hook failure must not break llm */
+        }
       }
       let usage: TurnStats["usage"] | null = null;
 
@@ -825,7 +830,9 @@ export class CacheFirstLoop {
           try {
             await this.pluginManager.trigger("llm.output", { text: assistantContent }, output);
             assistantContent = output.text;
-          } catch { /* hook failure must not break llm output */ }
+          } catch {
+            /* hook failure must not break llm output */
+          }
         }
       } catch (err) {
         // An aborted signal here is almost always our own doing —
