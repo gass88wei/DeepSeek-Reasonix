@@ -54,7 +54,7 @@ export class PluginManager {
    */
   async load(plugin: Plugin): Promise<boolean> {
     const id = plugin.id;
-    if ((plugin as Record<symbol, unknown>)[SYMBOL_LOADED]) return false;
+    if ((plugin as unknown as Record<symbol, unknown>)[SYMBOL_LOADED]) return false;
     if (this.#hooks.has(id)) {
       this.unload(id);
     }
@@ -75,7 +75,7 @@ export class PluginManager {
         source: "file",
         sourceSpec: id,
       });
-      (plugin as Record<symbol, unknown>)[SYMBOL_LOADED] = true;
+      (plugin as unknown as Record<symbol, unknown>)[SYMBOL_LOADED] = true;
       return true;
     } catch (err) {
       this.#entries.set(id, {
