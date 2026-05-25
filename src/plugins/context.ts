@@ -6,7 +6,7 @@
  * imports between plugins/* and config.ts.
  */
 
-import type { PluginContext, LlmOptions, LlmCompleteResult, LlmStructuredResult } from "./types.js";
+import type { LlmCompleteResult, LlmOptions, LlmStructuredResult, PluginContext } from "./types.js";
 
 /**
  * Build a PluginContext for a plugin with the given id.
@@ -36,9 +36,7 @@ export function createPluginContext(
     // -- Logger -----------------------------------------------------------
     log: (level, message, meta): void => {
       const prefix = `[plugins:${pluginId}]`;
-      const line = meta
-        ? `${prefix} ${message} ${JSON.stringify(meta)}`
-        : `${prefix} ${message}`;
+      const line = meta ? `${prefix} ${message} ${JSON.stringify(meta)}` : `${prefix} ${message}`;
       switch (level) {
         case "error":
         case "warn":
@@ -61,11 +59,7 @@ export function createPluginContext(
         return callLlmForPlugin(pluginId, messages, opts);
       },
 
-      async completeStructured(
-        instruction,
-        input,
-        schema,
-      ): Promise<LlmStructuredResult> {
+      async completeStructured(instruction, input, schema): Promise<LlmStructuredResult> {
         const { callStructuredForPlugin } = await import("./llm.js");
         return callStructuredForPlugin(pluginId, instruction, input, schema);
       },

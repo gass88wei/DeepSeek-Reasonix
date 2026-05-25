@@ -2,13 +2,13 @@
  * PluginManager tests
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { PluginManager } from "../index.js";
-import type { Plugin, PluginHooks, PluginContext } from "../types.js";
+import type { Plugin, PluginContext, PluginHooks } from "../types.js";
 
 function makePlugin(
   id: string,
-  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | void),
+  hooks?: PluginHooks | ((ctx: PluginContext) => PluginHooks | undefined),
 ): Plugin {
   return {
     id,
@@ -262,12 +262,13 @@ describe("PluginManager", () => {
       }),
     );
 
-    const output = { model: undefined, temperature: undefined, maxTokens: undefined, system: undefined };
-    await manager.triggerLlmParams(
-      [{ role: "user", content: "hi" }],
-      "deepseek-v4-flash",
-      output,
-    );
+    const output = {
+      model: undefined,
+      temperature: undefined,
+      maxTokens: undefined,
+      system: undefined,
+    };
+    await manager.triggerLlmParams([{ role: "user", content: "hi" }], "deepseek-v4-flash", output);
     expect(output.model).toBe("deepseek-v4-pro");
   });
 });

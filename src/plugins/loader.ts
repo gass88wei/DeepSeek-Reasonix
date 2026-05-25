@@ -10,9 +10,9 @@
  * The loader is a directory scan + dynamic import — no npm resolution in v1.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Plugin } from "./types.js";
 
@@ -69,11 +69,7 @@ export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
   for (const item of raw) {
     if (typeof item === "string") {
       entries.push({ spec: item.trim() });
-    } else if (
-      Array.isArray(item) &&
-      item.length >= 1 &&
-      typeof item[0] === "string"
-    ) {
+    } else if (Array.isArray(item) && item.length >= 1 && typeof item[0] === "string") {
       entries.push({
         spec: item[0].trim(),
         options:
@@ -96,16 +92,9 @@ export function parsePluginEntries(raw: unknown): PluginConfigEntry[] {
  *   - Bare names → scanned from .reasonix/plugins/<name>/
  *   - Scoped names (@scope/pkg) → npm resolution (v1: not implemented)
  */
-export function resolvePluginPath(
-  spec: string,
-  projectRoot?: string,
-): string | null {
+export function resolvePluginPath(spec: string, projectRoot?: string): string | null {
   // Already a path-like spec
-  if (
-    spec.startsWith("/") ||
-    spec.startsWith("./") ||
-    spec.startsWith("../")
-  ) {
+  if (spec.startsWith("/") || spec.startsWith("./") || spec.startsWith("../")) {
     const candidate = resolve(process.cwd(), spec);
     return existsSync(candidate) ? candidate : null;
   }
@@ -152,10 +141,7 @@ export function scanPluginDir(dir: string): string[] {
           if (existsSync(indexFile)) results.push(indexFile);
           const indexMjs = join(full, "index.mjs");
           if (existsSync(indexMjs)) results.push(indexMjs);
-        } else if (
-          stat.isFile() &&
-          (entry.endsWith(".js") || entry.endsWith(".mjs"))
-        ) {
+        } else if (stat.isFile() && (entry.endsWith(".js") || entry.endsWith(".mjs"))) {
           results.push(full);
         }
       } catch {

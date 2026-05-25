@@ -12,6 +12,7 @@
  *   - Hooks: Plugin hooks run BEFORE shell hooks in the same event
  */
 
+import { createPluginContext } from "./context.js";
 import type {
   LlmParamsOutput,
   Plugin,
@@ -23,7 +24,6 @@ import type {
   ToolBeforeInput,
   ToolBeforeOutput,
 } from "./types.js";
-import { createPluginContext } from "./context.js";
 
 export type { Plugin, PluginHooks, PluginEntry };
 
@@ -56,7 +56,6 @@ export class PluginManager {
     const id = plugin.id;
     if ((plugin as Record<symbol, unknown>)[SYMBOL_LOADED]) return false;
     if (this.#hooks.has(id)) {
-      // Unload existing first so hot-reload works.
       this.unload(id);
     }
 
@@ -133,35 +132,24 @@ export class PluginManager {
     output: unknown,
   ): Promise<void> {
     for (const hooks of this.#hooks.values()) {
-      const handler = hooks[event] as
-        | ((input: unknown, output: unknown) => Promise<void>)
-        | undefined;
+      const handler = hooks[event] as ((input: unknown, output: unknown) => Promise<void>) | undefined;
       if (typeof handler === "function") {
         try {
           await handler(input, output);
         } catch (err) {
-          // A failing handler must not break subsequent plugins or the host.
-          process.stderr.write(
-            `[plugins] hook "${event}" in plugin failed: ${err}\n`,
-          );
+          process.stderr.write(`[plugins] hook "${event}" in plugin failed: ${err}\n`);
         }
       }
     }
   }
 
   /** Convenience: trigger "tool.execute.before" with the right shape. */
-  async triggerToolBefore(
-    input: ToolBeforeInput,
-    output: ToolBeforeOutput,
-  ): Promise<void> {
+  async triggerToolBefore(input: ToolBeforeInput, output: ToolBeforeOutput): Promise<void> {
     await this.trigger("tool.execute.before", input, output);
   }
 
   /** Convenience: trigger "tool.execute.after" with the right shape. */
-  async triggerToolAfter(
-    input: ToolAfterInput,
-    output: ToolAfterOutput,
-  ): Promise<void> {
+  async triggerToolAfter(input: ToolAfterInput, output: ToolAfterOutput): Promise<void> {
     await this.trigger("tool.execute.after", input, output);
   }
 
@@ -188,9 +176,7 @@ export class PluginManager {
       if (hooks.tools) {
         for (const [name, def] of Object.entries(hooks.tools)) {
           if (name in all) {
-            process.stderr.write(
-              `[plugins] tool "${name}" registered by multiple plugins; last wins\n`,
-            );
+            process.stderr.write(`[plugins] tool "${name}" registered by multiple plugins; last wins\n`);
           }
           all[name] = def;
         }

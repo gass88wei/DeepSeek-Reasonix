@@ -7,7 +7,7 @@
  * model with no override capability (same as an untrusted plugin in hermes).
  */
 
-import type { LlmOptions, LlmCompleteResult, LlmStructuredResult } from "./types.js";
+import type { LlmCompleteResult, LlmOptions, LlmStructuredResult } from "./types.js";
 
 /**
  * Run a chat completion for a plugin.

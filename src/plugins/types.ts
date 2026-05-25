@@ -23,7 +23,7 @@ export interface Plugin {
   /** One-liner for `/plugins list`. */
   description?: string;
   /** Register function — called once at startup. Returns hooks or void. */
-  register: (ctx: PluginContext) => Promise<PluginHooks | void>;
+  register: (ctx: PluginContext) => Promise<PluginHooks | undefined>;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,16 +94,10 @@ export interface PluginHooks {
   // -- Tool lifecycle (mirrors + extends the 4 existing HookEvents) ---------
 
   /** Called before a tool executes. Return `{ block: true, message }` to block. */
-  "tool.execute.before"?: (
-    input: ToolBeforeInput,
-    output: ToolBeforeOutput,
-  ) => Promise<void>;
+  "tool.execute.before"?: (input: ToolBeforeInput, output: ToolBeforeOutput) => Promise<void>;
 
   /** Called after a tool executes. Mutate `output.result` to modify the result. */
-  "tool.execute.after"?: (
-    input: ToolAfterInput,
-    output: ToolAfterOutput,
-  ) => Promise<void>;
+  "tool.execute.after"?: (input: ToolAfterInput, output: ToolAfterOutput) => Promise<void>;
 
   // -- Chat / prompt hooks --------------------------------------------------
 
@@ -120,10 +114,7 @@ export interface PluginHooks {
   ) => Promise<void>;
 
   /** Called with LLM response text before it reaches the user. Mutate to rewrite. */
-  "llm.output"?: (
-    input: { text: string },
-    output: { text: string },
-  ) => Promise<void>;
+  "llm.output"?: (input: { text: string }, output: { text: string }) => Promise<void>;
 
   // -- Shell command hooks --------------------------------------------------
 
@@ -208,10 +199,7 @@ export interface PluginToolDefinition {
   /** If true, parallel execution with other tools is allowed. */
   parallelSafe?: boolean;
   /** The actual handler. */
-  execute: (
-    args: Record<string, unknown>,
-    ctx: { signal?: AbortSignal },
-  ) => Promise<string>;
+  execute: (args: Record<string, unknown>, ctx: { signal?: AbortSignal }) => Promise<string>;
 }
 
 // ---------------------------------------------------------------------------
