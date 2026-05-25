@@ -28,7 +28,7 @@ jobs:
       - name: Run plugin system tests
         run: npx vitest run --reporter verbose src/plugins/__tests__/
       - name: Biome format check (plugin files)
-        run: npx @biomejs/biome@1.9.4 check --verbose src/plugins/ 2>&1
+        run: npx @biomejs/biome@1.9.4 check --verbose src/plugins/ src/tools.ts src/loop.ts 2>&1
       - name: Notify on plugin-test failure
         if: failure()
         run: echo "❌ Plugin system tests failed on ${{ github.ref_name }} (${{ matrix.os }})"
