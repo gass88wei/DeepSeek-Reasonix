@@ -5,6 +5,7 @@ import {
   bridgeEndpointEnv,
   loadApiKey,
   loadHistoryScrollMode,
+  loadPluginEntries,
   loadToolRateLimit,
   readConfig,
   searchEnabled,
@@ -19,6 +20,7 @@ import {
   resolveSession,
 } from "../../memory/session.js";
 import { QQChannel } from "../../qq/channel.js";
+import { PluginManager, loadPluginsFromConfig, parsePluginEntries } from "../../plugins/barrel.js";
 import { ToolRegistry } from "../../tools.js";
 import { registerChoiceTool } from "../../tools/choice.js";
 import { registerMemoryTools } from "../../tools/memory.js";
@@ -115,6 +117,7 @@ export interface ChatOptions {
 interface RootProps extends ChatOptions {
   initialKey: string | undefined;
   tools: ToolRegistry | undefined;
+  pluginManager?: PluginManager;
   mcpSpecs: string[];
   mcpServers: McpServerSummary[];
   /** App.tsx writes its progress handler here on mount so MCP frames flow into OngoingToolRow. */
@@ -233,6 +236,7 @@ function Root({
         budgetUsd={appProps.budgetUsd}
         session={activeSession}
         tools={tools}
+        pluginManager={pluginManager}
         mcpSpecs={mcpSpecs}
         mcpServers={mcpServers}
         mcpRuntime={mcpRuntime}
@@ -333,6 +337,43 @@ export async function chatCommand(opts: ChatOptions): Promise<void> {
     registerChoiceTool(tools);
   }
 
+  // Plugin loading — scan config plugins.entries, load, and wire into ToolRegistry.
+  let pluginManager: PluginManager | undefined;
+  const pluginEntryRaw = loadPluginEntries();
+  const pluginEntries = parsePluginEntries(pluginEntryRaw);
+  if (pluginEntries.length > 0 && tools) {
+    const { loaded, failed } = await loadPluginsFromConfig(pluginEntries);
+    for (const f of failed) {
+      process.stderr.write(`[plugins] failed to load ${f.spec}: ${f.error}\n`);
+    }
+    if (loaded.length > 0) {
+      const pm = new PluginManager();
+      for (const plugin of loaded) {
+        const ok = await pm.load(plugin);
+        if (ok) {
+          process.stderr.write(`[plugins] loaded ${plugin.id} v${plugin.version}\n`);
+        }
+      }
+      // Register plugin tools into ToolRegistry
+      const pluginTools = pm.collectTools();
+      for (const [name, def] of Object.entries(pluginTools)) {
+        if (!tools.has(name)) {
+          tools.register({
+            name,
+            description: def.description,
+            parameters: def.parameters as any,
+            readOnly: def.readOnly,
+            parallelSafe: def.parallelSafe,
+            fn: async (args: any) => def.execute(args, { signal: undefined }),
+          });
+        }
+      }
+      // Wire PluginManager for tool.execute.before/after + llm.params/output hooks
+      tools.setPluginManager(pm);
+      pluginManager = pm;
+    }
+  }
+
   // resolveSession handles --new (timestamped name, old session preserved)
   // and --resume (latest prefixed). Default falls through to the latest
   // prefixed-or-base.
@@ -393,6 +434,7 @@ export async function chatCommand(opts: ChatOptions): Promise<void> {
     <Root
       initialKey={initialKey}
       tools={tools}
+      pluginManager={pluginManager}
       mcpSpecs={mcpSpecs}
       mcpServers={mcpServers}
       mcpRuntime={runtime}

@@ -51,6 +51,7 @@ import {
   patchSessionMeta,
   rewriteSession,
 } from "./memory/session.js";
+import type { PluginManager } from "./plugins/index.js";
 import { type RepairReport, ToolCallRepair } from "./repair/index.js";
 import { SessionStats, type TurnStats } from "./telemetry/stats.js";
 import { ToolRegistry } from "./tools.js";

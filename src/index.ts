@@ -147,6 +147,9 @@ export type {
   WebToolsOptions,
 } from "./tools/web.js";
 
+// Plugin system
+export * from "./plugins/barrel.js";
+
 export {
   SessionStats,
   costUsd,

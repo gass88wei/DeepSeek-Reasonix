@@ -71,6 +71,7 @@ import {
   renameSession,
   sanitizeName,
 } from "../../memory/session.js";
+import type { PluginManager } from "../../plugins/barrel.js";
 import type { QQChannel } from "../../qq/channel.js";
 import { useQQChannel } from "../../qq/use-qq-channel.js";
 import type {
@@ -231,6 +232,8 @@ export interface AppProps {
    * and its dispatch is used for tool calls —MCP tools become first-class.
    */
   tools?: ToolRegistry;
+  /** Plugin manager for llm.params / llm.output hooks on the loop. */
+  pluginManager?: PluginManager;
   /** Raw `--mcp` / config-derived spec strings, for `/mcp` slash display. */
   mcpSpecs?: string[];
   /**
@@ -459,6 +462,7 @@ function AppInner({
   budgetUsd,
   session,
   tools,
+  pluginManager,
   mcpSpecs,
   mcpServers,
   mcpRuntime,
@@ -1032,6 +1036,7 @@ function AppInner({
       client,
       prefix,
       tools,
+      pluginManager,
       model,
       budgetUsd,
       session,

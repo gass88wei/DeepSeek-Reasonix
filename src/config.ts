@@ -266,8 +266,20 @@ export interface ReasonixConfig {
     /** read_file flips to outline mode for files above this. Default 64 KiB — keeps the cache prefix slim while covering ~99% of source files. Raise to 524288 (512 KiB) for the pre-0.46.0 "trust the cache" behavior. */
     outlineThresholdBytes?: number;
   };
+  /** Plugin system configuration — entries to load on startup. */
+  plugins?: {
+    /** Plugin entries: a string (bare name) or [name, options] tuple. */
+    entries?: Array<string | [string, Record<string, unknown>]>;
+  };
   /** QQ Bot configuration */
   qq?: QQBotConfig;
+}
+
+/** Parse plugin entries from the loaded config. Returns [] if absent or malformed. */
+export function loadPluginEntries(
+  path: string = defaultConfigPath(),
+): Array<string | [string, Record<string, unknown>]> {
+  return readConfig(path).plugins?.entries ?? [];
 }
 
 export interface CustomMemoryTypeConfig {
