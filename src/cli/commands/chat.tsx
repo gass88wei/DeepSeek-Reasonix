@@ -19,8 +19,8 @@ import {
   renameSession,
   resolveSession,
 } from "../../memory/session.js";
-import { QQChannel } from "../../qq/channel.js";
 import { PluginManager, loadPluginsFromConfig, parsePluginEntries } from "../../plugins/barrel.js";
+import { QQChannel } from "../../qq/channel.js";
 import { ToolRegistry } from "../../tools.js";
 import { registerChoiceTool } from "../../tools/choice.js";
 import { registerMemoryTools } from "../../tools/memory.js";
